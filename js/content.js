@@ -65,12 +65,6 @@ const PAGES = {
       {
         type: "p",
         text: "Communication between Panel and Daemon uses a JSON-based protocol over a persistent WebSocket connection, with automatic reconnection and exponential backoff."
-      },
-      {
-        type: "info-box",
-        variant: "info",
-        title: "Default Admin Credentials",
-        body: "On first install, a default admin account is created with username <code>admin</code> and password <code>admin123</code>. <strong>You will be required to change the password on first login.</strong>"
       }
     ]
   },
