@@ -49,7 +49,7 @@ const PAGES = {
           ["Panel (Frontend)", "React + TypeScript + Vite", "Web dashboard UI"],
           ["Panel (Backend)", "Node.js + Express + TypeScript", "REST API & WebSocket proxy"],
           ["Daemon (Wings)", "Node.js", "Game server process manager"],
-          ["Database", "SQLite (sql.js)", "Persistent storage"],
+          ["Database", "SQLite (sql.js) or MySQL (mysql2)", "Persistent storage, chosen at install"],
           ["SFTP", "Built-in SSH2", "File management"],
           ["Build Tool", "Vite", "Bundling & dev server"]
         ]
@@ -65,6 +65,12 @@ const PAGES = {
       {
         type: "p",
         text: "Communication between Panel and Daemon uses a JSON-based protocol over a persistent WebSocket connection, with automatic reconnection and exponential backoff."
+      },
+      {
+        type: "info-box",
+        variant: "info",
+        title: "First-Time Setup",
+        body: "On first start the panel shows an install wizard at <code>http://localhost:5173/install</code>. It creates your admin account and lets you choose SQLite (default) or MySQL as the database."
       }
     ]
   },
@@ -83,34 +89,61 @@ const PAGES = {
           "Node.js v18 or higher",
           "npm (comes with Node.js)",
           "A server or VPS with at least 1 GB RAM",
-          "Port 3001 (Panel API) and port 443 or 80 (if using reverse proxy) must be open",
-          "A domain name pointed to your server (recommended)"
+          "Port 3001 (Panel API) and port 5173 (Panel UI) must be open",
+          "Optional: MySQL/MariaDB if you want MySQL storage instead of the default SQLite"
         ]
       },
       {
         type: "h2",
-        text: "Quick Start (Panel)"
+        text: "Quick Start (Windows)"
+      },
+      {
+        type: "p",
+        text: "On Windows, use the bundled launcher. It checks Java, SteamCMD, Node.js and npm, installs dependencies if needed, frees stale ports, and starts both the API and the web UI together."
       },
       {
         type: "step-list",
         steps: [
-          { title: "Clone the repository", body: "Download the TURTLE GP source code to your server." },
-          { title: "Install dependencies", body: "Run <code>npm install</code> in both the <code>server/</code> and <code>panel/</code> directories." },
-          { title: "Configure environment", body: "Set <code>CORS_ORIGIN</code> to your panel URL and <code>JWT_SECRET</code> to a random string in your environment or <code>.env</code> file." },
-          { title: "Build the panel", body: "Run <code>npm run build</code> in the <code>panel/</code> directory to produce the production bundle." },
-          { title: "Start the server", body: "Run <code>npm start</code> in the <code>server/</code> directory. The API will be available on port 3001." }
+          { title: "Install Node.js", body: "Download and install Node.js v18+ from <code>nodejs.org</code>." },
+          { title: "Double-click start.bat", body: "Run <code>start.bat</code> in the project root. The first run installs root/server/panel dependencies and may auto-download Java and SteamCMD." },
+          { title: "Open the panel", body: "Once both processes start, open <code>http://localhost:5173</code>. The API runs on <code>http://localhost:3001</code>." },
+          { title: "Complete the install wizard", body: "Create your admin account and choose SQLite (default) or MySQL. The wizard tests MySQL connectivity before saving." },
+          { title: "Stop the panel", body: "Close the start.bat window. Press any key at the prompt to exit cleanly." }
         ]
       },
       {
         type: "code-block",
         lang: "bash",
-        code: `git clone <repo-url> gamepanel
-cd gamepanel/server && npm install
-cd ../panel && npm install && npm run build
-cd ../server
-set JWT_SECRET=your-random-secret
-set CORS_ORIGIN=http://your-panel-domain.com:3001
-npm start`
+        code: `# Windows: from the project root
+start.bat
+
+# Linux: manual start (dev mode)
+cd server && npm install && npm run dev     # API on :3001
+cd panel && npm install && npm run dev      # UI on :5173`
+      },
+      {
+        type: "h2",
+        text: "MySQL Setup (Optional)"
+      },
+      {
+        type: "p",
+        text: "By default the panel uses SQLite (a single file, zero configuration). To use MySQL instead, select MySQL in the install wizard or set the following in <code>server/.env</code>:"
+      },
+      {
+        type: "code-block",
+        lang: "bash",
+        code: `# server/.env
+PORT=3001
+DB_TYPE=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=turtle_gp
+DB_USER=root
+DB_PASSWORD=your-password`
+      },
+      {
+        type: "p",
+        text: "The database and all 19 tables are created automatically at install time. If the server cannot reach MySQL (e.g. the service is stopped), it fails to start with a clear message — make sure MySQL/MariaDB is running before switching to it."
       },
       {
         type: "info-box",
@@ -179,28 +212,50 @@ sudo systemctl start wings`
         text: "Environment Variables"
       },
       {
+        type: "p",
+        text: "TURTLE GP reads configuration from <code>server/.env</code>. The default file looks like this:"
+      },
+      {
+        type: "code-block",
+        lang: "bash",
+        code: `# server/.env
+PORT=3001
+DB_TYPE=sqlite
+DB_PASSWORD=
+STEAMCMD_PATH=C:\\path\\to\\steamcmd\\steamcmd.exe`
+      },
+      {
         type: "table",
         headers: ["Variable", "Default", "Description"],
         rows: [
           ["PORT", "3001", "API server port"],
-          ["JWT_SECRET", "(auto-generated)", "Secret key for JWT token signing"],
+          ["DB_TYPE", "sqlite", "Database engine: <code>sqlite</code> or <code>mysql</code>"],
+          ["DB_HOST", "localhost", "MySQL host"],
+          ["DB_PORT", "3306", "MySQL port"],
+          ["DB_NAME", "turtle_gp", "MySQL database name"],
+          ["DB_USER", "root", "MySQL username"],
+          ["DB_PASSWORD", "(empty)", "MySQL password — always keep this line in .env"],
+          ["DATA_DIR", "<root>/data", "Where the SQLite file and uploads are stored"],
+          ["SERVERS_DIR", "<root>/servers", "Local server file storage"],
+          ["STEAMCMD_PATH", "(auto-detected)", "Path to steamcmd.exe"],
+          ["JWT_SECRET", "(auto-generated)", "Secret key for JWT token signing (auto-generated into .jwt_secret)"],
           ["JWT_EXPIRY", "7d", "JWT token expiration duration"],
           ["CORS_ORIGIN", "*", "Allowed CORS origin URL"],
+          ["TRUST_PROXY", "1", "Trust proxy headers (set to 1 behind nginx)"],
           ["BCRYPT_ROUNDS", "12", "bcrypt salt rounds for password hashing"],
-          ["TRUST_PROXY", "false", "Trust proxy headers (set 'true' behind nginx)"]
+          ["ALLOW_REGISTRATION", "true", "Whether public registration is enabled"],
+          ["CLOUDFLARE_API_TOKEN", "(empty)", "Token for subdomain management"],
+          ["CLOUDFLARE_ZONE_ID", "(empty)", "Cloudflare zone for subdomains"],
+          ["CLOUDFLARE_ZONE_DOMAIN", "(empty)", "Domain under which subdomains are created"]
         ]
       },
       {
         type: "h2",
-        text: "Security Configuration"
-      },
-      {
-        type: "p",
-        text: "Security settings are defined in <code>server/src/config.ts</code> and can be customized before building."
+        text: "Password Policy"
       },
       {
         type: "table",
-        headers: ["Setting", "Default", "Description"],
+        headers: ["Variable", "Default", "Description"],
         rows: [
           ["PASSWORD_MIN_LENGTH", "10", "Minimum password length"],
           ["PASSWORD_REQUIRE_UPPER", "true", "Require at least one uppercase letter"],
@@ -208,8 +263,7 @@ sudo systemctl start wings`
           ["PASSWORD_REQUIRE_DIGIT", "true", "Require at least one digit"],
           ["PASSWORD_REQUIRE_SPECIAL", "true", "Require at least one special character"],
           ["MAX_LOGIN_ATTEMPTS", "5", "Failed attempts before account lockout"],
-          ["LOGIN_LOCKOUT_MINUTES", "15", "Lockout duration in minutes"],
-          ["FORCE_PASSWORD_CHANGE", "true", "Force new users to change password on first login"]
+          ["LOGIN_LOCKOUT_MINUTES", "15", "Lockout duration in minutes"]
         ]
       },
       {
@@ -224,13 +278,14 @@ sudo systemctl start wings`
       },
       {
         type: "p",
-        text: "TURTLE GP supports Discord webhooks for server lifecycle notifications. Set the webhook URL in the <code>panel_settings</code> table:"
+        text: "TURTLE GP supports Discord webhooks for server lifecycle notifications. Set the webhook URL in the panel Settings page (under <strong>Admin &rarr; Settings</strong>), which writes to the <code>panel_settings</code> table:"
       },
       {
         type: "code-block",
         lang: "sql",
         code: `-- Add a webhook URL for Discord notifications
-INSERT INTO panel_settings (key, value) VALUES ('webhook_url', 'https://discord.com/api/webhooks/your-webhook-id/your-token');`
+-- The key column is quoted so the same SQL works on SQLite and MySQL.
+INSERT OR REPLACE INTO panel_settings (\`key\`, value) VALUES ('webhook_url', 'https://discord.com/api/webhooks/your-webhook-id/your-token');`
       },
       {
         type: "p",
@@ -398,11 +453,11 @@ INSERT INTO panel_settings (key, value) VALUES ('webhook_url', 'https://discord.
         type: "code-block",
         lang: "json",
         code: `// Creating a user (admin only)
-POST /api/users
+POST /api/admin/users
 {
   "username": "player1",
   "password": "StrongP@ss123",
-  "isAdmin": false
+  "role": "user"
 }`
       },
       {
@@ -434,7 +489,7 @@ POST /api/users
           ["config.js", "Configuration singleton with validation and setup wizard"],
           ["utils.js", "Common utility functions used across modules"],
           ["stats.js", "System resource collection (CPU, RAM, disk)"],
-          ["tools.js", "Java (8/26) and SteamCMD auto-installation"],
+          ["tools.js", "Java (8/11/17/21/25/26) and SteamCMD auto-installation"],
           ["process-manager.js", "Process spawning, CPU/RAM enforcement, watchdog with exponential backoff"],
           ["panel-client.js", "WebSocket client with reconnect logic and command dispatching"],
           ["sftp.js", "Full SFTP server with path traversal protection"],
@@ -604,13 +659,13 @@ POST /api/users
         code: `# Login
 curl -X POST http://localhost:3001/api/auth/login \\
   -H "Content-Type: application/json" \\
-  -d '{"username":"admin","password":"admin123"}'
+  -d '{"username":"admin","password":"your-password"}'
 
 # Response (success)
 {
   "token": "eyJhbGciOiJIUzI1NiIs...",
-  "user": { "id": 1, "username": "admin", "isAdmin": true },
-  "forcePasswordChange": true
+  "user": { "id": "0d8f...", "username": "admin", "role": "admin", "createdAt": "..." },
+  "forcePasswordChange": false
 }`
       },
       {
@@ -621,30 +676,35 @@ curl -X POST http://localhost:3001/api/auth/login \\
         type: "table",
         headers: ["Method", "Path", "Auth", "Description"],
         rows: [
+          ["GET", "/api/install/status", "No", "Check whether the panel is installed"],
+          ["POST", "/api/install/validate-db", "No", "Test a MySQL connection before install"],
+          ["POST", "/api/install/setup", "No", "Run install: create admin + optional MySQL migration"],
           ["POST", "/api/auth/login", "No", "User login"],
           ["POST", "/api/auth/register", "No", "Register new account (rate-limited)"],
-          ["GET", "/api/auth/verify", "Yes", "Verify token validity"],
-          ["PUT", "/api/auth/password", "Yes", "Change password"],
+          ["POST", "/api/auth/change-password", "Yes", "Change password"],
+          ["GET", "/api/auth/me", "Yes", "Get current user"],
+          ["GET", "/api/auth/login-history", "Yes", "Recent login history"],
+          ["POST", "/api/auth/sftp-auth", "No", "SFTP credential check for the daemon"],
           ["GET", "/api/servers", "Yes", "List assigned servers"],
           ["GET", "/api/servers/:id", "Yes", "Get server details"],
           ["POST", "/api/servers/:id/start", "Yes", "Start server"],
           ["POST", "/api/servers/:id/stop", "Yes", "Stop server"],
           ["POST", "/api/servers/:id/restart", "Yes", "Restart server"],
-          ["POST", "/api/servers/:id/clone", "Admin", "Clone server"],
           ["POST", "/api/servers/:id/install", "Yes", "Install/Reinstall server"],
+          ["POST", "/api/servers/:id/command", "Yes", "Send console command"],
           ["DELETE", "/api/servers/:id", "Admin", "Delete server"],
           ["GET", "/api/servers/:id/console", "Yes", "Get console logs"],
-          ["POST", "/api/servers/:id/command", "Yes", "Send console command"],
-          ["PUT", "/api/servers/:id/settings", "Yes", "Update server settings"],
-          ["GET", "/api/users", "Admin", "List all users"],
-          ["POST", "/api/users", "Admin", "Create user"],
-          ["PUT", "/api/users/:id", "Admin", "Update user"],
-          ["DELETE", "/api/users/:id", "Admin", "Delete user"],
+          ["GET", "/api/servers/:id/files", "Yes", "List server files"],
+          ["GET", "/api/admin/users", "Admin", "List all users"],
+          ["POST", "/api/admin/users", "Admin", "Create user"],
+          ["PUT", "/api/admin/users/:id", "Admin", "Update user"],
+          ["DELETE", "/api/admin/users/:id", "Admin", "Delete user"],
           ["GET", "/api/admin/servers", "Admin", "List all servers"],
           ["POST", "/api/admin/servers", "Admin", "Create server"],
-          ["GET", "/api/admin/nodes", "Admin", "List daemon nodes"],
-          ["GET", "/api/admin/audit-log", "Admin", "View audit log"],
-          ["GET", "/api/admin/stats", "Admin", "System statistics"]
+          ["GET", "/api/admin/dashboard", "Admin", "Dashboard statistics"],
+          ["GET", "/api/nodes", "Admin", "List daemon nodes"],
+          ["GET", "/api/audit", "Admin", "View audit log"],
+          ["GET", "/api/settings/public", "No", "Public panel settings (name, maintenance mode)"]
         ]
       },
       {
@@ -687,7 +747,7 @@ curl -X POST http://localhost:3001/api/auth/login \\
         items: [
           {
             q: "How do I reset the admin password?",
-            a: "Delete the <code>database.sql</code> file and restart the server. A fresh database will be created with the default admin credentials (<code>admin</code> / <code>admin123</code>). <strong>Warning:</strong> This will delete all data."
+            a: "With SQLite, stop the panel, delete <code>data/turtle-gp.db</code>, and restart — the install wizard will appear again so you can create a new admin. <strong>Warning:</strong> this deletes all users, servers, and settings. Alternatively, with MySQL, clear the <code>users</code> table and restart to re-trigger the wizard."
           },
           {
             q: "The Daemon won't connect to the Panel",
@@ -719,11 +779,11 @@ curl -X POST http://localhost:3001/api/auth/login \\
           },
           {
             q: "How do I back up the panel data?",
-            a: "Back up the <code>database.sql</code> file in the server root directory. This is a standard SQLite database containing all users, servers, and settings. <strong>Always stop the panel before copying the database file.</strong>"
+            a: "Back up <code>data/turtle-gp.db</code> (SQLite). This single file contains all users, servers, and settings. <strong>Always stop the panel before copying the database file.</strong> For MySQL, use your usual <code>mysqldump</code> or the phpMyAdmin export."
           },
           {
             q: "The panel says 'Account locked' — what do I do?",
-            a: "Wait 15 minutes for the lockout to expire automatically. If you're the admin and need immediate access, delete and recreate the database, or modify the <code>lockedUntil</code> field in the users table (requires SQLite knowledge)."
+            a: "Wait 15 minutes for the lockout to expire automatically. If you're the admin and need immediate access, stop the panel and clear the <code>lockedUntil</code> / failed-attempt values on the user row in <code>data/turtle-gp.db</code> (or the equivalent MySQL <code>users</code> table)."
           }
         ]
       }

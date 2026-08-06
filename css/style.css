@@ -94,18 +94,6 @@ body{
 }
 .nav-item.active svg{opacity:1;color:var(--accent)}
 
-.sidebar-footer{
-  padding:12px 8px;border-top:1px solid var(--border-subtle);flex-shrink:0
-}
-.footer-link{
-  display:flex;align-items:center;gap:8px;
-  padding:8px 12px;border-radius:var(--radius-sm);
-  color:var(--text-secondary);text-decoration:none;
-  font-size:13px;transition:var(--transition)
-}
-.footer-link svg{width:15px;height:15px}
-.footer-link:hover{background:var(--bg-hover);color:var(--accent)}
-
 .content{
   margin-left:var(--sidebar-w);flex:1;min-width:0;
   padding:0;transition:margin var(--transition)
