@@ -53,11 +53,4 @@
   window.addEventListener('scroll', setActive, { passive: true });
   window.addEventListener('resize', setActive);
   setActive();
-
-  var panelLink = document.getElementById('panelLink');
-  if (panelLink) {
-    panelLink.href = window.PANEL_URL && window.PANEL_URL !== '#' ? window.PANEL_URL : 'http://localhost:5173';
-    panelLink.target = '_blank';
-    panelLink.rel = 'noopener';
-  }
 })();
